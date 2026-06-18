@@ -19,6 +19,7 @@ WriteMakefile(
         'Test::More'            => '0.98',
         'Test::Fatal'           => 0,
         'HTTP::Request::Common' => 0,
+        'Moose'                 => 0,
     },
     META_MERGE => {
         'meta-spec' => { version => 2 },

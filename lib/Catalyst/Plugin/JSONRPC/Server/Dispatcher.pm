@@ -105,4 +105,29 @@ sub _normalize_error ( $self, $err ) {
     return ( -32603, 'Internal error', undef );
 }
 
+=head1 METHODS
+
+=head2 register( $method => $coderef )
+
+Register a handler for a JSON-RPC method name (a non-empty string). The handler
+is invoked as C<< $coderef->($params) >>. Return the result; to signal a
+JSON-RPC error throw a L<Catalyst::Plugin::JSONRPC::Server::Error> (or C<die>
+with a C<< { code, message, data } >> hashref). A plain C<die>, or any
+unrecognised exception, becomes C<-32603> and its text is not leaked. Croaks on
+a bad method name or non-coderef handler. Returns the dispatcher (chainable).
+
+=head2 dispatch( $json_text )
+
+Parse and dispatch a JSON-RPC 2.0 request (a single object or a batch array).
+Returns a response hashref for a single call, an arrayref for a batch, or
+C<undef> when there is nothing to send (a lone notification or an
+all-notification batch). Never dies: malformed JSON yields a C<-32700>
+parse-error response.
+
+=head2 encode( $data )
+
+Encode a response data structure to canonical UTF-8 JSON text.
+
+=cut
+
 1;
