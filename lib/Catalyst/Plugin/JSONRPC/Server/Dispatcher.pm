@@ -10,6 +10,21 @@ use namespace::clean;
 
 our $VERSION = '0.001';
 
+=encoding utf8
+
+=head1 NAME
+
+Catalyst::Plugin::JSONRPC::Server::Dispatcher - pure JSON-RPC 2.0 protocol engine
+
+=head1 DESCRIPTION
+
+The Catalyst-free engine behind L<Catalyst::Plugin::JSONRPC::Server>: it parses
+and validates JSON-RPC 2.0 envelopes (single and batch), routes to registered
+handlers, and produces spec-compliant result/error responses. It has no
+knowledge of Catalyst or of any application domain.
+
+=cut
+
 has _handlers => ( is => 'ro', default => sub { {} } );
 has _json => (
     is      => 'lazy',
