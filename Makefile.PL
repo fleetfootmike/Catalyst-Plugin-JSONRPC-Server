@@ -1,0 +1,34 @@
+use v5.36;
+use ExtUtils::MakeMaker;
+
+WriteMakefile(
+    NAME             => 'Catalyst::Plugin::JSONRPC::Server',
+    VERSION_FROM     => 'lib/Catalyst/Plugin/JSONRPC/Server.pm',
+    ABSTRACT         => 'Generic JSON-RPC 2.0 server plugin for Catalyst',
+    AUTHOR           => 'Mike Whitaker <fleetfootmike@gmail.com>',
+    LICENSE          => 'perl_5',
+    MIN_PERL_VERSION => '5.036',
+    PREREQ_PM => {
+        'Moo'              => 0,
+        'JSON::MaybeXS'    => 0,
+        'Try::Tiny'        => 0,
+        'namespace::clean' => 0,
+        'Catalyst::Runtime' => '5.90000',
+    },
+    TEST_REQUIRES => {
+        'Test::More'            => '0.98',
+        'Test::Fatal'           => 0,
+        'HTTP::Request::Common' => 0,
+    },
+    META_MERGE => {
+        'meta-spec' => { version => 2 },
+        resources   => {
+            repository => {
+                type => 'git',
+                url  => 'https://github.com/fleetfootmike/Catalyst-Plugin-JSONRPC-Server.git',
+                web  => 'https://github.com/fleetfootmike/Catalyst-Plugin-JSONRPC-Server',
+            },
+        },
+    },
+    clean => { FILES => 'Catalyst-Plugin-JSONRPC-Server-*' },
+);

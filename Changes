@@ -1,0 +1,4 @@
+Revision history for Catalyst-Plugin-JSONRPC-Server
+
+0.001     unreleased
+          - Initial version: generic JSON-RPC 2.0 server plugin for Catalyst.
