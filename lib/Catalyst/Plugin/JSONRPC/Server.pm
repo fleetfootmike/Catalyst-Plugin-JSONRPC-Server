@@ -45,10 +45,13 @@ sub jsonrpc_register ( $c, $method, $code ) {
 }
 
 sub jsonrpc_dispatch ( $c, $body = undef ) {
+    return $c->jsonrpc_dispatch_with( $c->_jsonrpc_dispatcher, $body );
+}
+
+sub jsonrpc_dispatch_with ( $c, $dispatcher, $body = undef ) {
     $body //= $c->_jsonrpc_read_body;
-    my $dispatcher = $c->_jsonrpc_dispatcher;
-    my $data       = $dispatcher->dispatch($body);
-    my $res        = $c->response;
+    my $data = $dispatcher->dispatch($body);
+    my $res  = $c->response;
 
     if ( !defined $data ) {
         $res->status(204);
@@ -97,6 +100,21 @@ plugin read the raw request body from C<< $c->request->body >>. Writes the HTTP
 response — 200 with the JSON envelope for a result or error, or 204 with an
 empty body when there is nothing to send (a notification) — and returns the
 response data (hashref or arrayref) or C<undef>.
+
+Delegates to L</jsonrpc_dispatch_with> using the per-application dispatcher.
+
+=head2 jsonrpc_dispatch_with( $dispatcher, $body = undef )
+
+Like C<jsonrpc_dispatch>, but dispatches against a caller-supplied
+L<Catalyst::Plugin::JSONRPC::Server::Dispatcher> instead of the persistent
+per-application one. This lets a consumer (e.g. an MCP plugin) build a fresh
+dispatcher each request, eliminating cross-request handler leakage and
+eliminating threaded races between concurrent requests.
+
+C<$dispatcher> must be a L<Catalyst::Plugin::JSONRPC::Server::Dispatcher>
+instance. C<$body> is the raw JSON string; when omitted the plugin reads the
+raw request body from C<< $c->request->body >>. Writes the HTTP response and
+returns the response data (hashref or arrayref) or C<undef>.
 
 =cut
 
