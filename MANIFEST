@@ -1,3 +1,4 @@
+.perlcriticrc
 Changes
 cpanfile
 lib/Catalyst/Plugin/JSONRPC/Server.pm
@@ -13,4 +14,6 @@ t/dispatcher-errors.t
 t/dispatcher-single.t
 t/lib/TestApp.pm
 t/lib/TestApp/Controller/Root.pm
+t/perl_critic.t
 t/plugin-context.t
+t/plugin-dispatch-with.t

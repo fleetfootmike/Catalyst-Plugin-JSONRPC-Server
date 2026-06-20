@@ -77,7 +77,7 @@ sub _jsonrpc_read_body ( $c ) {
     return $body unless ref $body;          # some configs hand back a string
     binmode $body;                          # raw bytes (codec does the utf8 decode)
     seek $body, 0, 0;                        # rewind (Catalyst may have read it)
-    local $/;
+    local $/ = undef;                        # slurp mode
     my $content = <$body>;
     return defined $content ? $content : q{};
 }

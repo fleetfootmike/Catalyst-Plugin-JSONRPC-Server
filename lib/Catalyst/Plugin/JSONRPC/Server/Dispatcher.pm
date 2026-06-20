@@ -33,7 +33,7 @@ has _json => (
 
 sub register ( $self, $method, $code ) {
     croak "JSON-RPC method must be a non-empty string"
-        unless defined $method && !ref $method && length $method;
+        if !defined $method || ref $method || !length $method;
     croak "JSON-RPC handler must be a CODE ref"
         unless ref $code eq 'CODE';
     $self->_handlers->{$method} = $code;
