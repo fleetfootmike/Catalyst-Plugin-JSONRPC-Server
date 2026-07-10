@@ -31,6 +31,11 @@ has _json => (
     builder => sub { JSON::MaybeXS->new( utf8 => 1, canonical => 1 ) },
 );
 
+# Maximum number of elements accepted in a batch array; 0 = unlimited. A finite
+# default caps the trivial amplification of a huge batch in one small body,
+# while staying generous enough for any realistic client.
+has max_batch => ( is => 'ro', default => 1000 );
+
 sub register ( $self, $method, $code ) {
     croak "JSON-RPC method must be a non-empty string"
         if !defined $method || ref $method || !length $method;
@@ -44,6 +49,28 @@ sub encode ( $self, $data ) {
     return $self->_json->encode($data);
 }
 
+# Like encode(), but never dies on a non-serializable value. A handler that
+# returns something the JSON codec can't encode (a blessed object without
+# TO_JSON, a coderef, a cyclic structure) would otherwise die here — outside the
+# per-handler try/catch — and 500 the whole request/batch. Instead, salvage: any
+# response element that won't encode is replaced by a -32603 (its id preserved),
+# so one bad result can't take down the others.
+sub encode_safe ( $self, $data ) {
+    my $text = try { $self->_json->encode($data) } catch { undef };
+    return $text if defined $text;
+    my $safe = ref $data eq 'ARRAY'
+        ? [ map { $self->_encodable_or_error($_) } @$data ]
+        : $self->_encodable_or_error($data);
+    return $self->_json->encode($safe);
+}
+
+sub _encodable_or_error ( $self, $resp ) {
+    return $resp if try { $self->_json->encode($resp); 1 } catch { 0 };
+    my $id = ref $resp eq 'HASH' ? $resp->{id} : undef;
+    return { jsonrpc => '2.0',
+        error => { code => -32603, message => 'Internal error' }, id => $id };
+}
+
 # Returns: hashref (single), arrayref (batch), or undef (nothing to send).
 sub dispatch ( $self, $json_text ) {
     my $decoded;
@@ -54,6 +81,8 @@ sub dispatch ( $self, $json_text ) {
     if ( ref $decoded eq 'ARRAY' ) {
         return $self->_error( undef, -32600, 'Invalid Request' )
             unless @$decoded;
+        return $self->_error( undef, -32600, 'Batch too large' )
+            if $self->max_batch && @$decoded > $self->max_batch;
         my @out = grep { defined } map { $self->_handle_one($_) } @$decoded;
         return @out ? \@out : undef;
     }
@@ -69,16 +98,24 @@ sub _handle_one ( $self, $req ) {
     my $is_note = !exists $req->{id};
     my $id      = $req->{id};    # undef for notifications; may be a JSON null
 
-    # Envelope validation
+    # Envelope validation. `id`, if present, must be a scalar (String/Number/Null)
+    # — a structured id is malformed. `params`, if present, must be a structured
+    # value OR an explicit null (which we treat as "no params", passing undef to
+    # the handler).
     my $valid =
            defined $req->{jsonrpc} && $req->{jsonrpc} eq '2.0'
         && defined $req->{method}  && !ref $req->{method}
+        && ( $is_note || !ref $id )
         && ( !exists $req->{params}
+             || !defined $req->{params}
              || ref $req->{params} eq 'ARRAY'
              || ref $req->{params} eq 'HASH' );
     unless ($valid) {
-        return undef if $is_note;
-        return $self->_error( $id, -32600, 'Invalid Request' );
+        # A structurally-invalid element is NOT a notification even when it has
+        # no id, so it still gets a -32600 (per the JSON-RPC 2.0 examples). The
+        # reply id is the request id when that is a usable scalar, else null (a
+        # structured or absent id can't be echoed).
+        return $self->_error( ( ref $id ? undef : $id ), -32600, 'Invalid Request' );
     }
 
     my $handler = $self->_handlers->{ $req->{method} };
@@ -141,7 +178,24 @@ parse-error response.
 
 =head2 encode( $data )
 
-Encode a response data structure to canonical UTF-8 JSON text.
+Encode a response data structure to canonical UTF-8 JSON text. Dies if C<$data>
+contains a value the JSON codec cannot serialize; prefer L</encode_safe> for
+untrusted handler output.
+
+=head2 encode_safe( $data )
+
+Like L</encode>, but never dies: any response element that will not serialize
+(a blessed object without C<TO_JSON>, a coderef, a cyclic structure) is replaced
+by a C<-32603> "Internal error" (its id preserved), so one bad handler result
+cannot 500 the whole request or corrupt a batch.
+
+=head1 ATTRIBUTES
+
+=head2 max_batch
+
+Maximum number of elements accepted in a batch array (default 1000; C<0> =
+unlimited). A batch beyond this is rejected with a single C<-32600> "Batch too
+large".
 
 =cut
 
