@@ -3,6 +3,8 @@ requires 'Moo';
 requires 'JSON::MaybeXS';
 requires 'Try::Tiny';
 requires 'namespace::clean';
+requires 'Carp';
+requires 'Scalar::Util';
 requires 'Catalyst::Runtime', '5.90000';
 
 on test => sub {

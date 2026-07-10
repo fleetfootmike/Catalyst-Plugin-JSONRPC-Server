@@ -13,6 +13,8 @@ WriteMakefile(
         'JSON::MaybeXS'    => 0,
         'Try::Tiny'        => 0,
         'namespace::clean' => 0,
+        'Carp'             => 0,
+        'Scalar::Util'     => 0,
         'Catalyst::Runtime' => '5.90000',
     },
     TEST_REQUIRES => {
