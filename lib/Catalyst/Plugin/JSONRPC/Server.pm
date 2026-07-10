@@ -29,13 +29,41 @@ engine lives in L<Catalyst::Plugin::JSONRPC::Server::Dispatcher>; this module is
 the thin Catalyst seam: it adds C<jsonrpc_register> and C<jsonrpc_dispatch> to
 the context.
 
+The dispatcher used by C<jsonrpc_register>/C<jsonrpc_dispatch> is built fresh for
+each request and cached on the context, so handlers (and anything they close
+over, such as C<$c>) never leak into a later request. It is therefore safe to
+register handlers inside a request action, as the SYNOPSIS does.
+
+=head1 CONFIGURATION
+
+Under the C<'Catalyst::Plugin::JSONRPC::Server'> config key:
+
+=over 4
+
+=item C<max_body_bytes>
+
+Maximum raw request body size the plugin will read (default 10 MiB; C<0> =
+unlimited). A larger body is rejected with a C<-32600> "Request too large".
+
+=back
+
+The per-request dispatcher's C<max_batch> (maximum batch-array length, default
+1000; C<0> = unlimited) is a
+L<Catalyst::Plugin::JSONRPC::Server::Dispatcher> attribute; supply your own
+dispatcher via L</jsonrpc_dispatch_with> to change it.
+
 =cut
 
-my %DISPATCHER;    # application class => Dispatcher (one per app)
+# Default cap on the raw request body (bytes); 0 = unlimited. Overridable per app
+# via $c->config->{'Catalyst::Plugin::JSONRPC::Server'}{max_body_bytes}.
+my $DEFAULT_MAX_BODY_BYTES = 10 * 1024 * 1024;
 
+# Per-request dispatcher: built fresh for each request and cached on the context
+# object, so handlers (and anything they close over, such as $c) never leak into
+# a later request served by the same worker. Re-registering a method name within
+# a request is idempotent.
 sub _jsonrpc_dispatcher ( $c ) {
-    my $app = ref($c) || $c;
-    return $DISPATCHER{$app}
+    return $c->{'__jsonrpc_dispatcher'}
         //= Catalyst::Plugin::JSONRPC::Server::Dispatcher->new;
 }
 
@@ -48,34 +76,69 @@ sub jsonrpc_dispatch ( $c, $body = undef ) {
     return $c->jsonrpc_dispatch_with( $c->_jsonrpc_dispatcher, $body );
 }
 
-sub jsonrpc_dispatch_with ( $c, $dispatcher, $body = undef ) {
-    $body //= $c->_jsonrpc_read_body;
-    my $data = $dispatcher->dispatch($body);
-    my $res  = $c->response;
+sub jsonrpc_dispatch_with ( $c, $dispatcher, $body = undef, $empty_status = 204 ) {
+    my $res = $c->response;
+
+    # When we read the body ourselves, an oversize body comes back as a scalar
+    # ref sentinel; reject it before parsing. A caller-supplied $body (a string)
+    # is the caller's responsibility and is not size-checked here.
+    my $read = $body // $c->_jsonrpc_read_body;
+    if ( ref $read ) {
+        return $c->_jsonrpc_write( $dispatcher, {
+            jsonrpc => '2.0',
+            error   => { code => -32600, message => 'Request too large' },
+            id      => undef,
+        }, 200 );
+    }
+
+    my $data = $dispatcher->dispatch($read);
 
     if ( !defined $data ) {
-        $res->status(204);
+        $res->status($empty_status);
         $res->body(q{});
         return undef;
     }
+    return $c->_jsonrpc_write( $dispatcher, $data, 200 );
+}
 
-    $res->status(200);
+sub _jsonrpc_write ( $c, $dispatcher, $data, $status ) {
+    my $res = $c->response;
+    $res->status($status);
     $res->content_type('application/json');
-    $res->body( $dispatcher->encode($data) );
+    # encode_safe: a handler result that won't serialize degrades to a -32603
+    # here rather than dying (outside any try) and turning into an HTTP 500.
+    $res->body( $dispatcher->encode_safe($data) );
     return $data;
+}
+
+sub _jsonrpc_max_body_bytes ( $c ) {
+    return $DEFAULT_MAX_BODY_BYTES unless $c->can('config');
+    my $conf = $c->config or return $DEFAULT_MAX_BODY_BYTES;
+    my $cfg = $conf->{'Catalyst::Plugin::JSONRPC::Server'} || {};
+    return $cfg->{max_body_bytes} // $DEFAULT_MAX_BODY_BYTES;
 }
 
 # Read the raw (undecoded) request body. Catalyst buffers it; $c->request->body
 # is a (usually seekable) filehandle for content types it does not parse (e.g.
-# application/json). Returns '' when there is no body. We use the builtin
-# binmode/seek (not method calls) so this works on both blessed IO objects and
-# plain glob filehandles; binmode guarantees raw bytes, which is what the
-# Dispatcher's utf8 JSON codec expects.
+# application/json). Returns '' when there is no body, or a scalar ref sentinel
+# when the body exceeds the configured size cap. We use the builtin binmode/seek
+# (not method calls) so this works on both blessed IO objects and plain glob
+# filehandles; binmode guarantees raw bytes, which the Dispatcher's utf8 codec
+# expects.
 sub _jsonrpc_read_body ( $c ) {
     my $body = $c->request->body;
     return q{} unless defined $body;
     return $body unless ref $body;          # some configs hand back a string
     binmode $body;                          # raw bytes (codec does the utf8 decode)
+    my $limit = $c->_jsonrpc_max_body_bytes;
+    if ($limit) {
+        seek $body, 0, 2;                    # SEEK_END: size it without slurping
+        my $size = tell $body;
+        if ( defined $size && $size > $limit ) {
+            seek $body, 0, 0;
+            return \'too_large';             # sentinel: caller emits -32600
+        }
+    }
     seek $body, 0, 0;                        # rewind (Catalyst may have read it)
     local $/ = undef;                        # slurp mode
     my $content = <$body>;
@@ -101,20 +164,26 @@ response — 200 with the JSON envelope for a result or error, or 204 with an
 empty body when there is nothing to send (a notification) — and returns the
 response data (hashref or arrayref) or C<undef>.
 
-Delegates to L</jsonrpc_dispatch_with> using the per-application dispatcher.
+Delegates to L</jsonrpc_dispatch_with> using the per-request dispatcher.
 
-=head2 jsonrpc_dispatch_with( $dispatcher, $body = undef )
+=head2 jsonrpc_dispatch_with( $dispatcher, $body = undef, $empty_status = 204 )
 
 Like C<jsonrpc_dispatch>, but dispatches against a caller-supplied
-L<Catalyst::Plugin::JSONRPC::Server::Dispatcher> instead of the persistent
-per-application one. This lets a consumer (e.g. an MCP plugin) build a fresh
-dispatcher each request, eliminating cross-request handler leakage and
-eliminating threaded races between concurrent requests.
+L<Catalyst::Plugin::JSONRPC::Server::Dispatcher>. Use this when you want to
+control the dispatcher yourself — e.g. to pre-register a fixed handler set once,
+or to set a non-default C<max_batch>. (A consumer such as an MCP plugin builds a
+fresh per-request dispatcher and dispatches it here.)
 
 C<$dispatcher> must be a L<Catalyst::Plugin::JSONRPC::Server::Dispatcher>
-instance. C<$body> is the raw JSON string; when omitted the plugin reads the
-raw request body from C<< $c->request->body >>. Writes the HTTP response and
-returns the response data (hashref or arrayref) or C<undef>.
+instance. C<$body> is the raw JSON string; when omitted the plugin reads the raw
+request body from C<< $c->request->body >> (subject to C<max_body_bytes>).
+C<$empty_status> is the HTTP status used when there is nothing to send (a
+notification or all-notification batch); it defaults to C<204>, but a transport
+that requires a different code — e.g. MCP's Streamable HTTP, which mandates
+C<202 Accepted> — can pass it. Writes the HTTP response and returns the response
+data (hashref or arrayref) or C<undef>. A handler result that will not serialize
+degrades to a C<-32603> error rather than dying (see
+L<Catalyst::Plugin::JSONRPC::Server::Dispatcher/encode_safe>).
 
 =cut
 
