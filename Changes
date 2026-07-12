@@ -1,6 +1,9 @@
 Revision history for Catalyst-Plugin-JSONRPC-Server
 
-0.001     unreleased
+0.002     unreleased
+          - Version bump so consumers reliably install the current code over any
+            0.001 already present in an environment (cpanm treats same-version as
+            satisfied); no code change from the 0.001 line below.
           - Initial version: generic JSON-RPC 2.0 server plugin for Catalyst.
           - Added jsonrpc_dispatch_with($dispatcher, $body) for request-scoped
             dispatch against a caller-supplied Dispatcher; jsonrpc_dispatch now

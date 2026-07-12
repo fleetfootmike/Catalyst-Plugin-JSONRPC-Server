@@ -8,7 +8,7 @@ use Scalar::Util qw/blessed/;
 use Catalyst::Plugin::JSONRPC::Server::Error;
 use namespace::clean;
 
-our $VERSION = '0.001';
+our $VERSION = '0.002';
 
 =encoding utf8
 
