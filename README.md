@@ -29,3 +29,12 @@ sub rpc :Path('/rpc') :Args(0) {
 - `$c->jsonrpc_dispatch($body = undef)` — dispatch a JSON-RPC request. Pass the
   raw body, or omit it to have the plugin read the raw request body. Writes the
   HTTP response (200 + JSON, or 204 for a notification) and returns the data.
+
+## Author
+
+Mike Whitaker <mike@altrion.org>
+
+## License
+
+This library is free software; you can redistribute it and/or modify it
+under the terms of the Artistic License, as distributed with Perl.

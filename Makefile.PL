@@ -5,7 +5,7 @@ WriteMakefile(
     NAME             => 'Catalyst::Plugin::JSONRPC::Server',
     VERSION_FROM     => 'lib/Catalyst/Plugin/JSONRPC/Server.pm',
     ABSTRACT         => 'Generic JSON-RPC 2.0 server plugin for Catalyst',
-    AUTHOR           => 'Mike Whitaker <fleetfootmike@gmail.com>',
+    AUTHOR           => 'Mike Whitaker <mike@altrion.org>',
     LICENSE          => 'perl_5',
     MIN_PERL_VERSION => '5.036',
     PREREQ_PM => {
