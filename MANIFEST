@@ -1,6 +1,11 @@
 .perlcriticrc
 Changes
 cpanfile
+examples/README.md
+examples/app.psgi
+examples/client.pl
+examples/lib/Example/JSONRPC.pm
+examples/lib/Example/JSONRPC/Controller/Root.pm
 lib/Catalyst/Plugin/JSONRPC/Server.pm
 lib/Catalyst/Plugin/JSONRPC/Server/Dispatcher.pm
 lib/Catalyst/Plugin/JSONRPC/Server/Error.pm

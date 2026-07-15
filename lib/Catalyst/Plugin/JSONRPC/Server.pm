@@ -185,6 +185,13 @@ data (hashref or arrayref) or C<undef>. A handler result that will not serialize
 degrades to a C<-32603> error rather than dying (see
 L<Catalyst::Plugin::JSONRPC::Server::Dispatcher/encode_safe>).
 
+=head1 EXAMPLES
+
+A runnable example lives in F<examples/>: a small Catalyst app exposing C<echo>
+and C<sum> over JSON-RPC, plus a core-Perl client. Start it with
+C<plackup examples/app.psgi> and run C<perl examples/client.pl>. See
+F<examples/README.md>.
+
 =cut
 
 1;
