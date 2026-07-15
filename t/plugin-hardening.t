@@ -97,4 +97,32 @@ package StubContext {
     is( $c->response->status, 200, 'still a well-formed 200 JSON-RPC error' );
 }
 
+# --- S5b: the cap holds when the body comes back as a STRING, not a handle ---
+# _jsonrpc_read_body has a `return $body unless ref $body` fast path for configs
+# that hand back a decoded string instead of a filehandle. It returned early,
+# before the size check, so max_body_bytes only ever fired on the handle branch.
+# Catalyst hands back a temp filehandle for POST bodies so this is not the usual
+# path, but the cap is documented without qualification.
+{
+    my $big = '{"jsonrpc":"2.0","method":"echo","params":["' . ( 'x' x 5000 ) . '"],"id":1}';
+    my $c   = StubContext->new(
+        request => StubRequest->new($big),    # a plain string, not a filehandle
+        config  => { 'Catalyst::Plugin::JSONRPC::Server' => { max_body_bytes => 1000 } },
+    );
+    $c->jsonrpc_register( echo => sub ($p) { $p } );
+    my $data = $c->jsonrpc_dispatch;
+    is( $data->{error}{code}, -32600, 'oversize string body rejected with -32600 (S5b)' );
+}
+# ...and an under-cap string body still dispatches normally (the cap must not
+# turn into a blanket rejection of the string branch).
+{
+    my $c = StubContext->new(
+        request => StubRequest->new('{"jsonrpc":"2.0","method":"echo","params":["hi"],"id":1}'),
+        config  => { 'Catalyst::Plugin::JSONRPC::Server' => { max_body_bytes => 1000 } },
+    );
+    $c->jsonrpc_register( echo => sub ($p) { $p } );
+    my $data = $c->jsonrpc_dispatch;
+    is_deeply( $data->{result}, ['hi'], 'an under-cap string body still dispatches (S5b)' );
+}
+
 done_testing;

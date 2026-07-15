@@ -128,9 +128,19 @@ sub _jsonrpc_max_body_bytes ( $c ) {
 sub _jsonrpc_read_body ( $c ) {
     my $body = $c->request->body;
     return q{} unless defined $body;
-    return $body unless ref $body;          # some configs hand back a string
-    binmode $body;                          # raw bytes (codec does the utf8 decode)
     my $limit = $c->_jsonrpc_max_body_bytes;
+
+    # Some configs hand back a string rather than a filehandle. The cap applies
+    # to every body we read ourselves, not just the filehandle branch, so this
+    # is size-checked too (a caller-supplied body stays the caller's problem --
+    # see jsonrpc_dispatch_with). Bodies are raw bytes by contract, so length()
+    # is the byte count.
+    unless ( ref $body ) {
+        return \'too_large' if $limit && length($body) > $limit;
+        return $body;
+    }
+
+    binmode $body;                          # raw bytes (codec does the utf8 decode)
     if ($limit) {
         seek $body, 0, 2;                    # SEEK_END: size it without slurping
         my $size = tell $body;

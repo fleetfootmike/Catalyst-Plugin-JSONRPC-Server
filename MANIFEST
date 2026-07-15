@@ -22,3 +22,4 @@ t/lib/TestApp/Controller/Root.pm
 t/perl_critic.t
 t/plugin-context.t
 t/plugin-dispatch-with.t
+t/plugin-hardening.t
