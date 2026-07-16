@@ -5,6 +5,11 @@ Revision history for Catalyst-Plugin-JSONRPC-Server
             0.001 already present in an environment (cpanm treats same-version as
             satisfied); no code change from the 0.001 line below.
           - Initial version: generic JSON-RPC 2.0 server plugin for Catalyst.
+          - Fixed four dead internal POD links. L</name> does not resolve
+            against a =head2 that carries its signature, because the generated
+            anchor includes the arguments, so the links to
+            jsonrpc_dispatch_with, encode and encode_safe all pointed at
+            anchors that do not exist.
           - Added jsonrpc_dispatch_with($dispatcher, $body) for request-scoped
             dispatch against a caller-supplied Dispatcher; jsonrpc_dispatch now
             delegates to it.
