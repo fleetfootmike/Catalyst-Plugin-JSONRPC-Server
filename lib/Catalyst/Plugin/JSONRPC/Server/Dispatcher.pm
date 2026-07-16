@@ -51,8 +51,8 @@ sub encode ( $self, $data ) {
 
 # Like encode(), but never dies on a non-serializable value. A handler that
 # returns something the JSON codec can't encode (a blessed object without
-# TO_JSON, a coderef, a cyclic structure) would otherwise die here — outside the
-# per-handler try/catch — and 500 the whole request/batch. Instead, salvage: any
+# TO_JSON, a coderef, a cyclic structure) would otherwise die here, outside the
+# per-handler try/catch, and 500 the whole request/batch. Instead, salvage: any
 # response element that won't encode is replaced by a -32603 (its id preserved),
 # so one bad result can't take down the others.
 sub encode_safe ( $self, $data ) {
@@ -98,10 +98,10 @@ sub _handle_one ( $self, $req ) {
     my $is_note = !exists $req->{id};
     my $id      = $req->{id};    # undef for notifications; may be a JSON null
 
-    # Envelope validation. `id`, if present, must be a scalar (String/Number/Null)
-    # — a structured id is malformed. `params`, if present, must be a structured
-    # value OR an explicit null (which we treat as "no params", passing undef to
-    # the handler).
+    # Envelope validation. `id`, if present, must be a scalar (String/Number/
+    # Null): a structured id is malformed. `params`, if present, must be a
+    # structured value OR an explicit null (which we treat as "no params",
+    # passing undef to the handler).
     my $valid =
            defined $req->{jsonrpc} && $req->{jsonrpc} eq '2.0'
         && defined $req->{method}  && !ref $req->{method}
@@ -179,12 +179,14 @@ parse-error response.
 =head2 encode( $data )
 
 Encode a response data structure to canonical UTF-8 JSON text. Dies if C<$data>
-contains a value the JSON codec cannot serialize; prefer L</encode_safe> for
+contains a value the JSON codec cannot serialize; prefer
+L<< C<encode_safe>|/"encode_safe( $data )" >> for
 untrusted handler output.
 
 =head2 encode_safe( $data )
 
-Like L</encode>, but never dies: any response element that will not serialize
+Like L<< C<encode>|/"encode( $data )" >>, but never dies: any response element
+that will not serialize
 (a blessed object without C<TO_JSON>, a coderef, a cyclic structure) is replaced
 by a C<-32603> "Internal error" (its id preserved), so one bad handler result
 cannot 500 the whole request or corrupt a batch.
