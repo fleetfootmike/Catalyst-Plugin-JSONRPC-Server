@@ -31,6 +31,10 @@ WriteMakefile(
                 url  => 'https://github.com/fleetfootmike/Catalyst-Plugin-JSONRPC-Server.git',
                 web  => 'https://github.com/fleetfootmike/Catalyst-Plugin-JSONRPC-Server',
             },
+            bugtracker => {
+                web => 'https://github.com/fleetfootmike/Catalyst-Plugin-JSONRPC-Server/issues',
+            },
+            homepage => 'https://github.com/fleetfootmike/Catalyst-Plugin-JSONRPC-Server',
         },
     },
     clean => { FILES => 'Catalyst-Plugin-JSONRPC-Server-*' },
