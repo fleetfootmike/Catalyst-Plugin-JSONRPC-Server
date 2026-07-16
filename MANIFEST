@@ -1,5 +1,7 @@
 .perlcriticrc
+AGENTS.md
 Changes
+CONTRIBUTING.md
 cpanfile
 examples/README.md
 examples/app.psgi
