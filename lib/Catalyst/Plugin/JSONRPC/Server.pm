@@ -219,7 +219,8 @@ With thanks to
 
 =item *
 
-Jesse Vincent for C</superpowers> (L<https://github.com/obra/superpowers>)
+Jesse Vincent for C</superpowers> (L<https://github.com/obra/superpowers>) and
+the C<AGENTS.md> boilerplate
 
 =item *
 

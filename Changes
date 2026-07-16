@@ -1,6 +1,6 @@
 Revision history for Catalyst-Plugin-JSONRPC-Server
 
-0.003     unreleased
+0.003     2026-07-16
           - Genericise the perl_critic author test comment; no functional
             change.
 
