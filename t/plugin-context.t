@@ -46,8 +46,8 @@ is( $c2->response->status, 204, 'status 204 for nothing-to-send' );
 is( $c2->response->body, '', 'empty body' );
 
 # No-arg dispatch: the plugin reads the raw body from $c->request->body (an
-# in-memory filehandle here, an unblessed glob — exercises _jsonrpc_read_body's
-# builtin binmode/seek/slurp).
+# in-memory filehandle here, an unblessed glob), exercising _jsonrpc_read_body's
+# builtin binmode/seek/slurp.
 my $json = '{"jsonrpc":"2.0","method":"echo","params":[9],"id":7}';
 open my $fh, '<', \$json or die "cannot open in-memory fh: $!";
 my $c3 = StubContext->new( request => StubRequest->new($fh) );

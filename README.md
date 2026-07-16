@@ -21,18 +21,32 @@ sub rpc :Path('/rpc') :Args(0) {
 
 ## Methods
 
-- `$c->jsonrpc_register($method => $coderef)` — register a handler. The handler
+- `$c->jsonrpc_register($method => $coderef)`: register a handler. The handler
   is called as `$coderef->($params)`; return the result, or throw a
   `Catalyst::Plugin::JSONRPC::Server::Error` (or `die` with `{ code, message,
   data }`) to return a JSON-RPC error. A plain `die` becomes `-32603` without
   leaking the message.
-- `$c->jsonrpc_dispatch($body = undef)` — dispatch a JSON-RPC request. Pass the
+- `$c->jsonrpc_dispatch($body = undef)`: dispatch a JSON-RPC request. Pass the
   raw body, or omit it to have the plugin read the raw request body. Writes the
   HTTP response (200 + JSON, or 204 for a notification) and returns the data.
 
 ## Author
 
 Mike Whitaker <mike@altrion.org>
+
+Built with tool assistance from Claude Code/(mostly) Opus 4.8 to accelerate
+code generation and maximise test coverage (and reduce typing :D).
+
+With thanks to
+
+- Jesse Vincent for `/superpowers` (<https://github.com/obra/superpowers>)
+- Curtis "Ovid" Poe for `/paad` (<https://github.com/Ovid/paad>)
+
+for providing an agentic development framework that keeps code authority
+firmly where it belongs.
+
+Iteratively reviewed by Finn Kempers <finn@shadow.cat> with analysis from
+ZCode/GLM-5.2.
 
 ## License
 

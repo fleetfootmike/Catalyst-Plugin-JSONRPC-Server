@@ -50,7 +50,9 @@ unlimited). A larger body is rejected with a C<-32600> "Request too large".
 The per-request dispatcher's C<max_batch> (maximum batch-array length, default
 1000; C<0> = unlimited) is a
 L<Catalyst::Plugin::JSONRPC::Server::Dispatcher> attribute; supply your own
-dispatcher via L</jsonrpc_dispatch_with> to change it.
+dispatcher via
+L<< C<jsonrpc_dispatch_with>|/"jsonrpc_dispatch_with( $dispatcher, $body =
+undef, $empty_status = 204 )" >> to change it.
 
 =cut
 
@@ -170,17 +172,19 @@ internal error whose text is not leaked. Returns C<$c> (chainable).
 
 Dispatch a JSON-RPC 2.0 request. Pass the raw JSON body, or omit it to have the
 plugin read the raw request body from C<< $c->request->body >>. Writes the HTTP
-response — 200 with the JSON envelope for a result or error, or 204 with an
-empty body when there is nothing to send (a notification) — and returns the
+response (200 with the JSON envelope for a result or error, or 204 with an
+empty body when there is nothing to send, i.e. a notification) and returns the
 response data (hashref or arrayref) or C<undef>.
 
-Delegates to L</jsonrpc_dispatch_with> using the per-request dispatcher.
+Delegates to
+L<< C<jsonrpc_dispatch_with>|/"jsonrpc_dispatch_with( $dispatcher, $body =
+undef, $empty_status = 204 )" >> using the per-request dispatcher.
 
 =head2 jsonrpc_dispatch_with( $dispatcher, $body = undef, $empty_status = 204 )
 
 Like C<jsonrpc_dispatch>, but dispatches against a caller-supplied
 L<Catalyst::Plugin::JSONRPC::Server::Dispatcher>. Use this when you want to
-control the dispatcher yourself — e.g. to pre-register a fixed handler set once,
+control the dispatcher yourself, e.g. to pre-register a fixed handler set once,
 or to set a non-default C<max_batch>. (A consumer such as an MCP plugin builds a
 fresh per-request dispatcher and dispatches it here.)
 
@@ -189,8 +193,8 @@ instance. C<$body> is the raw JSON string; when omitted the plugin reads the raw
 request body from C<< $c->request->body >> (subject to C<max_body_bytes>).
 C<$empty_status> is the HTTP status used when there is nothing to send (a
 notification or all-notification batch); it defaults to C<204>, but a transport
-that requires a different code — e.g. MCP's Streamable HTTP, which mandates
-C<202 Accepted> — can pass it. Writes the HTTP response and returns the response
+that requires a different code (e.g. MCP's Streamable HTTP, which mandates
+C<202 Accepted>) can pass it. Writes the HTTP response and returns the response
 data (hashref or arrayref) or C<undef>. A handler result that will not serialize
 degrades to a C<-32603> error rather than dying (see
 L<Catalyst::Plugin::JSONRPC::Server::Dispatcher/encode_safe>).
@@ -205,6 +209,29 @@ F<examples/README.md>.
 =head1 AUTHOR
 
 Mike Whitaker <mike@altrion.org>
+
+Built with tool assistance from Claude Code/(mostly) Opus 4.8 to accelerate
+code generation and maximise test coverage (and reduce typing :D).
+
+With thanks to
+
+=over
+
+=item *
+
+Jesse Vincent for C</superpowers> (L<https://github.com/obra/superpowers>)
+
+=item *
+
+Curtis "Ovid" Poe for C</paad> (L<https://github.com/Ovid/paad>)
+
+=back
+
+for providing an agentic development framework that keeps code authority
+firmly where it belongs.
+
+Iteratively reviewed by Finn Kempers <finn@shadow.cat> with analysis from
+ZCode/GLM-5.2.
 
 =head1 LICENSE
 
