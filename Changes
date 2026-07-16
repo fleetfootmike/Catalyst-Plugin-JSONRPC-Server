@@ -1,5 +1,9 @@
 Revision history for Catalyst-Plugin-JSONRPC-Server
 
+0.003     unreleased
+          - Genericise the perl_critic author test comment; no functional
+            change.
+
 0.002     unreleased
           - Version bump so consumers reliably install the current code over any
             0.001 already present in an environment (cpanm treats same-version as
